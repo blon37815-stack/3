@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GradeMaster 360 | Quản lý điểm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 32px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Canvas cho hiệu ứng cánh hoa đào - phía sau */
+        #petal-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Header */
+        .header-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 20px 32px;
+            margin-bottom: 28px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideInDown 0.5s ease;
+        }
+
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-badge {
+            display: flex;
+            gap: 24px;
+            background: #f0f2ff;
+            padding: 8px 24px;
+            border-radius: 40px;
+        }
+
+        .stat-item {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .stat-number {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-right: 6px;
+        }
+
+        /* Main Layout */
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+        }
+
+        /* Form Panel */
+        .form-panel {
+            flex: 1.2;
+            min-width: 300px;
+            background: white;
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            animation: fadeInLeft 0.5s ease;
+        }
+
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* List Panel */
+        .list-panel {
+            flex: 2.2;
+            min-width: 400px;
+            background: white;
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            animation: fadeInRight 0.5s ease;
+        }
+
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid #667eea;
+            padding-left: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        label i {
+            margin-right: 8px;
+            color: #667eea;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 2px solid #e2e8f0;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .btn {
+            border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #868f9a, #5c6672);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f56565, #c53030);
+        }
+
+        /* Search */
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .search-box input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .search-box button {
+            width: auto;
+            padding: 0 24px;
+            margin-top: 0;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f7fafc;
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 0.8rem;
+        }
+
+        tr:hover {
+            background: #fef5e7;
+        }
+
+        .score-badge {
+            background: #48bb78;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .rating-excellent { background: #ed8936; }
+        .rating-good { background: #48bb78; }
+        .rating-average { background: #e53e3e; }
+        .rating-weak { background: #c53030; }
+
+        .action-icons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .edit-btn, .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 6px 10px;
+            border-radius: 30px;
+            transition: all 0.2s;
+        }
+
+        .edit-btn {
+            color: #667eea;
+            background: #eef2ff;
+        }
+        .edit-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        .delete-btn {
+            color: #f56565;
+            background: #fff5f5;
+        }
+        .delete-btn:hover {
+            background: #f56565;
+            color: white;
+        }
+
+        .empty-row td {
+            text-align: center;
+            color: #a0aec0;
+            padding: 50px;
+        }
+
+        .alert {
+            background: #fef5e7;
+            border-left: 4px solid #f6ad55;
+            padding: 12px 16px;
+            border-radius: 14px;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ===== BẢNG TIÊU CHÍ XẾP LOẠI GIỐNG ẢNH ===== */
+        .criteria-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .criteria-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #2d3748;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .criteria-title i {
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .criteria-item {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 8px;
+            text-align: center;
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .criteria-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .criteria-level {
+            font-weight: 800;
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+
+        .criteria-level.excellent { color: #ed8936; }
+        .criteria-level.good { color: #38a169; }
+        .criteria-level.average { color: #e53e3e; }
+        .criteria-level.weak { color: #c53030; }
+
+        .criteria-range {
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .criteria-icon {
+            font-size: 1.2rem;
+            margin-bottom: 6px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 32px;
+            padding: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 780px) {
+            body { padding: 20px 16px; }
+            .criteria-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="petal-canvas"></canvas>
+
+<div class="container">
+    <div class="header-card">
+        <div>
+            <h1><i class="fas fa-graduation-cap"></i> GradeMaster 360</h1>
+            <div style="font-size: 0.8rem; color: #718096; margin-top: 4px;">Hệ thống quản lý điểm thông minh</div>
+        </div>
+        <div class="stats-badge">
+            <div class="stat-item"><span class="stat-number" id="totalStudents">0</span> Sinh viên</div>
+            <div class="stat-item"><span class="stat-number" id="avgClassScore">—</span> Điểm TB</div>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <div class="form-panel">
+            <div class="section-title">
+                <i class="fas fa-edit"></i> Nhập điểm
+            </div>
+            <form id="studentForm">
+                <div class="form-group">
+                    <label><i class="fas fa-id-card"></i> Mã số sinh viên</label>
+                    <input type="text" id="studentId" placeholder="VD: 20240001" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-user-graduate"></i> Họ và tên</label>
+                    <input type="text" id="fullName" placeholder="Nguyễn Văn A" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calculator"></i> Điểm Toán (0-10)</label>
+                    <input type="number" id="mathScore" step="0.1" min="0" max="10" placeholder="0 - 10" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-book-open"></i> Điểm Văn (0-10)</label>
+                    <input type="number" id="literatureScore" step="0.1" min="0" max="10" placeholder="0 - 10" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-language"></i> Điểm Anh (0-10)</label>
+                    <input type="number" id="englishScore" step="0.1" min="0" max="10" placeholder="0 - 10" required>
+                </div>
+                <button type="submit" class="btn" id="submitBtn"><i class="fas fa-save"></i> Thêm sinh viên</button>
+                <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display: none;"><i class="fas fa-times"></i> Hủy chỉnh sửa</button>
+            </form>
+            <div id="formMessage" class="alert" style="display: none;"></div>
+        </div>
+
+        <div class="list-panel">
+            <div class="section-title">
+                <i class="fas fa-table-list"></i> Bảng điểm
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm theo tên hoặc mã SV...">
+                <button id="resetSearchBtn" class="btn-secondary" style="width: auto;"><i class="fas fa-undo"></i> Reset</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>MSSV</th><th>Họ tên</th><th>Toán</th><th>Văn</th><th>Anh</th><th>Điểm TB</th><th>Xếp loại</th><th>Thao tác</th></tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr class="empty-row"><td colspan="8"><i class="fas fa-database"></i> Chưa có dữ liệu</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button id="deleteAllBtn" class="btn-danger" style="width: auto; padding: 8px 24px;"><i class="fas fa-trash"></i> Xóa tất cả</button>
+            </div>
+
+            <!-- BẢNG TIÊU CHÍ XẾP LOẠI GIỐNG ẢNH -->
+            <div class="criteria-card">
+                <div class="criteria-title">
+                    <i class="fas fa-chart-simple"></i> Tiêu chí xếp loại
+                </div>
+                <div class="criteria-grid">
+                    <div class="criteria-item">
+                        <div class="criteria-icon">🏅</div>
+                        <div class="criteria-level excellent">Giỏi</div>
+                        <div class="criteria-range">8.0 – 10.0</div>
+                    </div>
+                    <div class="criteria-item">
+                        <div class="criteria-icon">📚</div>
+                        <div class="criteria-level good">Khá</div>
+                        <div class="criteria-range">6.5 – &lt;8.0</div>
+                    </div>
+                    <div class="criteria-item">
+                        <div class="criteria-icon">👥</div>
+                        <div class="criteria-level average">Trung bình</div>
+                        <div class="criteria-range">5.0 – &lt;6.5</div>
+                    </div>
+                    <div class="criteria-item">
+                        <div class="criteria-icon">📈</div>
+                        <div class="criteria-level weak">Yếu</div>
+                        <div class="criteria-range">&lt;5.0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer><i class="fas fa-chart-line"></i> Công thức: (Toán×2 + Văn×2 + Anh×1) / 5</footer>
+</div>
+
+<script>
+    // ==================== HIỆU ỨNG CÁNH HOA ====================
+    const canvas = document.getElementById('petal-canvas');
+    let ctx = canvas.getContext('2d');
+    let petals = [];
+
+    class Petal {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height - canvas.height;
+            this.size = 6 + Math.random() * 10;
+            this.speedY = 0.5 + Math.random() * 1.5;
+            this.speedX = -0.2 + Math.random() * 0.5;
+            this.angle = Math.random() * Math.PI * 2;
+            this.angleSpeed = (Math.random() - 0.5) * 0.02;
+            this.opacity = 0.4 + Math.random() * 0.4;
+            const colors = ['#FFB7C5', '#FFC0CB', '#FFB6C1', '#FFA6C9', '#F8C8D0', '#FFD1DC'];
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+        }
+        update() {
+            this.y += this.speedY;
+            this.x += this.speedX;
+            this.angle += this.angleSpeed;
+            if (this.y > canvas.height + 60) {
+                this.y = -60;
+                this.x = Math.random() * canvas.width;
+            }
+            if (this.x > canvas.width + 60) this.x = -60;
+            if (this.x < -60) this.x = canvas.width + 60;
+        }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.opacity;
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            for (let i = 0; i < 5; i++) {
+                ctx.save();
+                ctx.rotate((i * 72) * Math.PI / 180);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(this.size * 0.45, -this.size * 0.85, 0, -this.size);
+                ctx.quadraticCurveTo(-this.size * 0.45, -this.size * 0.85, 0, 0);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size * 0.2, 0, Math.PI * 2);
+            ctx.fillStyle = '#FF69B4';
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    function initPetals(count) {
+        petals = [];
+        for (let i = 0; i < count; i++) petals.push(new Petal());
+    }
+
+    function animatePetals() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let petal of petals) { petal.update(); petal.draw(); }
+        requestAnimationFrame(animatePetals);
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', () => { resizeCanvas(); initPetals(45); });
+    resizeCanvas();
+    initPetals(50);
+    animatePetals();
+
+    // ==================== QUẢN LÝ ĐIỂM ====================
+    let students = [
+    ];
+
+    let editMode = false;
+    let editTargetId = null;
+
+    const studentIdInput = document.getElementById('studentId');
+    const fullNameInput = document.getElementById('fullName');
+    const mathInput = document.getElementById('mathScore');
+    const literatureInput = document.getElementById('literatureScore');
+    const englishInput = document.getElementById('englishScore');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const formMessageDiv = document.getElementById('formMessage');
+    const searchInput = document.getElementById('searchInput');
+    const resetSearchBtn = document.getElementById('resetSearchBtn');
+    const tableBody = document.getElementById('tableBody');
+    const totalStudentsSpan = document.getElementById('totalStudents');
+    const avgClassScoreSpan = document.getElementById('avgClassScore');
+    const deleteAllBtn = document.getElementById('deleteAllBtn');
+
+    function calculateAverage(student) {
+        const totalWeight = (student.math * 2) + (student.literature * 2) + (student.english * 1);
+        return Math.round((totalWeight / 5) * 100) / 100;
+    }
+
+    function getRating(avg) {
+        if (avg >= 8.0) return 'Giỏi';
+        if (avg >= 6.5) return 'Khá';
+        if (avg >= 5.0) return 'Trung bình';
+        return 'Yếu';
+    }
+
+    function getRatingClass(avg) {
+        if (avg >= 8.0) return 'rating-excellent';
+        if (avg >= 6.5) return 'rating-good';
+        if (avg >= 5.0) return 'rating-average';
+        return 'rating-weak';
+    }
+
+    function updateStatistics() {
+        const total = students.length;
+        totalStudentsSpan.innerText = total;
+        if (total === 0) {
+            avgClassScoreSpan.innerText = '—';
+            return;
+        }
+        let sumAvg = 0;
+        for (let s of students) sumAvg += calculateAverage(s);
+        avgClassScoreSpan.innerText = (sumAvg / total).toFixed(2);
+    }
+
+    function renderTable() {
+        const keyword = searchInput.value.trim().toLowerCase();
+        let filtered = keyword ? students.filter(s => s.id.toLowerCase().includes(keyword) || s.name.toLowerCase().includes(keyword)) : [...students];
+        
+        if (filtered.length === 0) {
+            tableBody.innerHTML = '<tr class="empty-row"><td colspan="8"><i class="fas fa-search"></i> Không tìm thấy sinh viên</td></tr>';
+            updateStatistics();
+            return;
+        }
+
+        let html = '';
+        for (let s of filtered) {
+            const avg = calculateAverage(s);
+            const rating = getRating(avg);
+            const ratingClass = getRatingClass(avg);
+            html += `
+                <tr>
+                    <td><strong>${escapeHtml(s.id)}</strong></td>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td>${s.math.toFixed(1)}</td>
+                    <td>${s.literature.toFixed(1)}</td>
+                    <td>${s.english.toFixed(1)}</td>
+                    <td><span class="score-badge">${avg.toFixed(2)}</span></td>
+                    <td><span class="score-badge ${ratingClass}">${rating}</span></td>
+                    <td class="action-icons">
+                        <button class="edit-btn" data-id="${escapeHtml(s.id)}"><i class="fas fa-pen"></i></button>
+                        <button class="delete-btn" data-id="${escapeHtml(s.id)}"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }
+        tableBody.innerHTML = html;
+
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => startEditStudent(btn.getAttribute('data-id')));
+        });
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteStudentById(btn.getAttribute('data-id')));
+        });
+        updateStatistics();
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+
+    function showMessage(msg, isError = false) {
+        formMessageDiv.style.display = 'flex';
+        formMessageDiv.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i> ${msg}`;
+        formMessageDiv.style.background = isError ? '#fff5f5' : '#f0fff4';
+        formMessageDiv.style.borderLeftColor = isError ? '#f56565' : '#48bb78';
+        setTimeout(() => {
+            formMessageDiv.style.display = 'none';
+        }, 2500);
+    }
+
+    function deleteStudentById(id) {
+        if (confirm(`Xóa sinh viên "${id}"?`)) {
+            students = students.filter(s => s.id !== id);
+            if (editMode && editTargetId === id) resetFormToAddMode();
+            renderTable();
+            showMessage(`Đã xóa sinh viên ${id}`, false);
+        }
+    }
+
+    function deleteAllStudents() {
+        if (students.length === 0) {
+            showMessage("Danh sách đã trống!", false);
+            return;
+        }
+        if (confirm("Xóa TOÀN BỘ danh sách?")) {
+            students = [];
+            if (editMode) resetFormToAddMode();
+            renderTable();
+            showMessage("Đã xóa tất cả sinh viên.", false);
+        }
+    }
+
+    function startEditStudent(id) {
+        const student = students.find(s => s.id === id);
+        if (!student) return;
+        editMode = true;
+        editTargetId = student.id;
+        studentIdInput.value = student.id;
+        fullNameInput.value = student.name;
+        mathInput.value = student.math;
+        literatureInput.value = student.literature;
+        englishInput.value = student.english;
+        submitBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Cập nhật';
+        cancelEditBtn.style.display = 'block';
+        studentIdInput.disabled = true;
+        studentIdInput.style.background = '#edf2f7';
+        showMessage(`Đang sửa: ${student.name}`, false);
+    }
+
+    function resetFormToAddMode() {
+        editMode = false;
+        editTargetId = null;
+        studentIdInput.disabled = false;
+        studentIdInput.style.background = '';
+        studentIdInput.value = '';
+        fullNameInput.value = '';
+        mathInput.value = '';
+        literatureInput.value = '';
+        englishInput.value = '';
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Thêm sinh viên';
+        cancelEditBtn.style.display = 'none';
+    }
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        let studentId = studentIdInput.value.trim();
+        const fullName = fullNameInput.value.trim();
+        const math = parseFloat(mathInput.value);
+        const literature = parseFloat(literatureInput.value);
+        const english = parseFloat(englishInput.value);
+
+        if (!studentId) return showMessage("Nhập mã SV", true);
+        if (!fullName) return showMessage("Nhập họ tên", true);
+        if (isNaN(math) || math < 0 || math > 10) return showMessage("Toán từ 0-10", true);
+        if (isNaN(literature) || literature < 0 || literature > 10) return showMessage("Văn từ 0-10", true);
+        if (isNaN(english) || english < 0 || english > 10) return showMessage("Anh từ 0-10", true);
+
+        if (editMode && editTargetId) {
+            if (studentId !== editTargetId) return showMessage("Không thể đổi mã khi sửa", true);
+            const index = students.findIndex(s => s.id === editTargetId);
+            if (index !== -1) {
+                students[index] = { id: studentId, name: fullName, math, literature, english };
+                showMessage(`Cập nhật thành công "${fullName}"`, false);
+                renderTable();
+                resetFormToAddMode();
+            }
+            return;
+        }
+
+        if (students.some(s => s.id === studentId)) {
+            return showMessage(`Mã "${studentId}" đã tồn tại`, true);
+        }
+
+        students.push({ id: studentId, name: fullName, math, literature, english });
+        showMessage(`Thêm sinh viên "${fullName}" thành công`, false);
+        renderTable();
+        studentIdInput.value = '';
+        fullNameInput.value = '';
+        mathInput.value = '';
+        literatureInput.value = '';
+        englishInput.value = '';
+        studentIdInput.focus();
+    }
+
+    document.getElementById('studentForm').addEventListener('submit', handleSubmit);
+    cancelEditBtn.addEventListener('click', resetFormToAddMode);
+    searchInput.addEventListener('input', renderTable);
+    resetSearchBtn.addEventListener('click', () => { searchInput.value = ''; renderTable(); });
+    deleteAllBtn.addEventListener('click', deleteAllStudents);
+
+    renderTable();
+</script>
+</body>
+</html>
